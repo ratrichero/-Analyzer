@@ -37,13 +37,13 @@ class RecommendationEngine:
         if final_score >= SCORE["strong_threshold"]:
             direction = "LONG"
             strength  = "🟢 MẠNH"
-        elif final_score >= 20:
+        elif final_score >= SCORE["weak_threshold"]:
             direction = "LONG"
             strength  = "🟡 YẾU"
         elif final_score <= -SCORE["strong_threshold"]:
             direction = "SHORT"
             strength  = "🔴 MẠNH"
-        elif final_score <= -20:
+        elif final_score <= -SCORE["weak_threshold"]:
             direction = "SHORT"
             strength  = "🟠 YẾU"
         else:
