@@ -33,6 +33,8 @@ ENDPOINTS = {
     "exchange_info": "/fapi/v1/exchangeInfo",
 }
 
+
+
 # ═══════════════════════════════════════════════════════
 # KHUNG THỜI GIAN
 # ═══════════════════════════════════════════════════════
@@ -93,7 +95,7 @@ RISK = {
 # ═══════════════════════════════════════════════════════
 SCORE = {
     "strong_threshold": 70,
-    "weak_threshold":   20,
+    "neutral_threshold":   20,
 }
 
 # ═══════════════════════════════════════════════════════
@@ -103,4 +105,24 @@ REQUEST = {
     "timeout": 10,
     "retry":    3,
     "delay":  0.3,
+}
+
+# ═══════════════════════════════════════
+# TELEGRAM BOT
+# ═══════════════════════════════════════
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_ADMIN_ID  = int(os.getenv("TELEGRAM_ADMIN_ID", "0"))
+
+# Danh sách coin phổ biến hiển thị trên menu
+POPULAR_COINS = [
+    "BTCUSDT",  "ETHUSDT",  "BNBUSDT",
+    "SOLUSDT",  "ARBUSDT",  "OPUSDT",
+    "AVAXUSDT", "MATICUSDT","DOGEUSDT",
+    "XRPUSDT",  "ADAUSDT",  "LINKUSDT",
+]
+
+# Giới hạn request
+RATE_LIMIT = {
+    "max_requests_per_user": 5,   # Max request mỗi user
+    "cooldown_seconds":      60,  # Cooldown giữa các lần
 }
