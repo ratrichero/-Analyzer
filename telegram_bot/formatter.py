@@ -327,3 +327,191 @@ class TelegramFormatter:
             self._section_footer(),
         ]
         return "\n".join(parts)
+    
+# Thêm các method sau vào class TelegramFormatter để hỗ trợ format riêng phần Khuyến nghị khi thị trường NEUTRAL (Range Trading).
+
+    # ─────────────────────────────────────
+    def format_recommendation_only(self,
+                                    symbol: str,
+                                    price: float,
+                                    rec: dict) -> str:
+        """Format khuyến nghị — có xử lý Neutral."""
+
+        # Trường hợp Neutral → Range Trading
+        if rec["direction"] == "NEUTRAL":
+            return self.format_range_trading(
+                symbol, price, rec
+            )
+
+        # Trường hợp có hướng rõ → Bình thường
+        parts = [
+            f"🎯 *KHUYẾN NGHỊ GIAO DỊCH*\n"
+            f"*{symbol}* — `{price:,.4f} USDT`\n"
+            f"{'═' * 28}",
+            self._section_mtf_summary(
+                rec["tf_scores"],
+                rec["mtf_alignment"]
+            ),
+            self._section_recommendation(rec),
+            self._section_levels(rec),
+            self._section_reasons(rec),
+            self._section_invalidation(rec),
+            self._section_checklist(rec),
+            self._section_footer(),
+        ]
+        return "\n".join(parts)
+
+    # ─────────────────────────────────────
+    def format_range_trading(self,
+                              symbol: str,
+                              price: float,
+                              rec: dict) -> str:
+        """
+        Format đặc biệt cho thị trường Neutral.
+        Hiển thị Range Trading với 2 entry.
+        """
+        rd = rec.get("range_data")
+
+        if not rd:
+            return (
+                f"⚪ *{symbol}* — Thị trường trung tính\n"
+                f"_Chưa đủ dữ liệu để tính Range._"
+            )
+
+        rng     = rd["trading_range"]
+        long_e  = rd["long_entry"]
+        short_e = rd["short_entry"]
+        quality = rd["range_quality"]
+        warns   = rd["warnings"]
+
+        parts = []
+
+        # ── Header ────────────────────────
+        parts.append(
+            f"📐 *RANGE TRADING*\n"
+            f"*{symbol}* — `{price:,.4f} USDT`\n"
+            f"{'═' * 28}"
+        )
+
+        # ── MTF Summary ngắn ──────────────
+        parts.append(
+            self._section_mtf_summary(
+                rec["tf_scores"],
+                rec["mtf_alignment"]
+            )
+        )
+
+        # ── Trạng thái thị trường ─────────
+        parts.append(
+            f"\n{'─' * 28}\n"
+            f"⚪ *{rec['strength']}*\n"
+            f"📊 Score: `{rec['score']:+.1f}/100` "
+            f"| Tín hiệu chưa rõ hướng\n"
+            f"{'─' * 28}"
+        )
+
+        # ── Trading Range ─────────────────
+        pos_bar = self._position_bar(
+            rng["price_position"]
+        )
+        parts.append(
+            f"\n📦 *BIÊN ĐỘ GIAO DỊCH*\n"
+            f"  {quality['quality_icon']} "
+            f"Chất lượng: *{quality['quality']}*\n"
+            f"  _{quality['quality_note']}_\n\n"
+            f"  🔴 Đỉnh : `{rng['top']:>14,.4f}`\n"
+            f"  {pos_bar}\n"
+            f"  💰 Giá  : `{price:>14,.4f}` "
+            f"_({rng['price_position']:.0f}%)_\n"
+            f"  {pos_bar}\n"
+            f"  🟢 Đáy  : `{rng['bottom']:>14,.4f}`\n\n"
+            f"  📏 Độ rộng: `{rng['width_pct']:.2f}%` "
+            f"| Giữa: `{rng['mid']:,.4f}`"
+        )
+
+        # ── Entry LONG ────────────────────
+        parts.append(
+            self._format_range_entry(long_e, price)
+        )
+
+        # ── Entry SHORT ───────────────────
+        parts.append(
+            self._format_range_entry(short_e, price)
+        )
+
+        # ── Cảnh báo ──────────────────────
+        if warns:
+            warn_lines = ["\n⚠️ *LƯU Ý*"]
+            for w in warns:
+                warn_lines.append(f"  _{w}_")
+            parts.append("\n".join(warn_lines))
+
+        # ── Footer ────────────────────────
+        parts.append(
+            f"\n{'─' * 28}\n"
+            f"⚠️ _Range Trading chỉ hiệu quả_\n"
+            f"_khi thị trường thực sự sideway._\n"
+            f"_Thoát ngay nếu có Breakout mạnh._"
+        )
+
+        return "\n".join(parts)
+
+    # ─────────────────────────────────────
+    def _format_range_entry(self,
+                             entry: dict,
+                             current_price: float) -> str:
+        """Format 1 entry (Long hoặc Short)."""
+        is_long  = entry["direction"] == "LONG"
+        dir_icon = "🟢" if is_long else "🔴"
+        dir_text = "LONG" if is_long else "SHORT"
+
+        lines = [
+            f"\n{'─' * 28}",
+            f"{dir_icon} *ĐỀ XUẤT {dir_text}*",
+            f"  {entry['status']}",
+            f"  _{entry['status_note']}_\n",
+        ]
+
+        # Vùng entry
+        lines.append(
+            f"  📍 *Vùng Entry*\n"
+            f"  `{entry['entry_zone_low']:>14,.4f}` "
+            f"→ `{entry['entry_zone_high']:>14,.4f}`\n"
+            f"  _(Lý tưởng: "
+            f"{entry['entry_ideal']:,.4f})_"
+        )
+
+        # SL / TP
+        lines.append(
+            f"\n  ├ SL  : `{entry['sl']:>14,.4f}`"
+            f"  _(-{entry['sl_pct']:.2f}%)_\n"
+            f"  ├ TP1 : `{entry['tp1']:>14,.4f}`"
+            f"  _(+{entry['tp1_pct']:.2f}%)_\n"
+            f"  └ TP2 : `{entry['tp2']:>14,.4f}`"
+            f"  _(+{entry['tp2_pct']:.2f}%)_"
+        )
+
+        # RR
+        lines.append(
+            f"\n  RR1: `1:{entry['rr1']}` "
+            f"| RR2: `1:{entry['rr2']}`"
+        )
+
+        return "\n".join(lines)
+
+    # ─────────────────────────────────────
+    def _position_bar(self,
+                       position: float,
+                       width: int = 20) -> str:
+        """
+        Bar hiển thị vị trí giá trong range.
+        0% = đáy, 100% = đỉnh
+        """
+        pos    = max(0, min(100, position))
+        filled = int(pos / 100 * width)
+        bar    = (
+            "░" * filled
+            + "▲"
+            + "░" * (width - filled)
+        )
+        return f"  `[{bar}]`"

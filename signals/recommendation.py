@@ -75,6 +75,15 @@ class RecommendationEngine:
             group_scores, risk_info
         )
 
+        # ── Thêm Range Analysis khi Neutral ──
+        range_data = None
+        if direction == "NEUTRAL":
+            from signals.range_analyzer import RangeAnalyzer
+            range_analyzer = RangeAnalyzer()
+            range_data     = range_analyzer.analyze(
+                analyses, price, atr
+        )
+
         return {
             # Core
             "direction":    direction,
@@ -101,6 +110,8 @@ class RecommendationEngine:
 
             # ATR
             "atr": round(atr, 4),
+
+            "range_data": range_data,   # ← Thêm field này
         }
 
     # ═════════════════════════════════════
@@ -566,3 +577,5 @@ class RecommendationEngine:
         ))
 
         return checklist
+    
+    
